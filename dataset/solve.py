@@ -1,5 +1,6 @@
 from pyscipopt import Model
 from random import randint
+from result_type import SolutionResultType
 from solution import Solution
 
 
@@ -17,7 +18,9 @@ def solve(A, c, b, time_constraint, total_solutions, vtype="I", objective_task="
         vtype -- the type of solution required
         objective_task -- what to do with the objective function
     Returns: 
-        a generator, returning Solution class
+        a generator, returning SolutionResultType class containing 
+        solver status and the Solution class, describing the found
+        solution, if solver's status was optimal
     """
     solutions = []
     cnt = 0
@@ -39,12 +42,13 @@ def solve(A, c, b, time_constraint, total_solutions, vtype="I", objective_task="
         model.setParam("randomization/randomseedshift", random_state)
         model.optimize()
         if model.getStatus() != "optimal":
+            yield SolutionResultType(model.getStatus())
             break
         x = [model.getVal(vars[i]) for i in range(n)]
         solutions.append(x)
         obj_fun_val = sum([x[i] * c[i] for i in range(n)])
         runtime = model.getSolvingTime()
-        yield Solution(x, cnt, runtime, obj_fun_val, random_state)
+        yield SolutionResultType(model.getStatus(), Solution(x, cnt, runtime, obj_fun_val, random_state))
         cnt += 1
 
 
@@ -56,5 +60,9 @@ if __name__ == "__main__":
     c = [1, 8, 4]
     solutions = solve(A, c, b, 10, 1000)
     for solution in solutions:
+        if solution.status != "optimal":
+            print(solution.status)
+            continue
+        solution = solution.solution
         print(solution.x, solution.solve_time, solution.target_val)
         print(solution.index)
