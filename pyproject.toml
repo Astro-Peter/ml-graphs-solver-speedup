@@ -6,5 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "graph_solver"
 version = "0.1.0"
 dependencies = [
-    "pyscipopt"
+    "pyscipopt",
+    "torch",
+    'torch_geometric',
+    'numpy'
 ]
