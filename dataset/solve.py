@@ -5,7 +5,7 @@ from result_type import SolutionResultType
 from solution import Solution
 
 
-def solve(time_constraint, total_solutions, vtype="I", objective_task="maximize", orig_model=None, A=None, c=None, b=None):
+def solve(total_solutions, vtype="I", objective_task="maximize", time_constraint=None, orig_model=None, A=None, c=None, b=None):
     """
     Compute either total_solutions solutions, or compute solutions
     until solver runtime is >= time_constraint
@@ -36,7 +36,6 @@ def solve(time_constraint, total_solutions, vtype="I", objective_task="maximize"
         if orig_model is None:
             model = Model()
             model.hideOutput(True)
-            model.setParam("limits/time", time_constraint)
             n = len(c)
             m = len(b)
             vars = [model.addVar(vtype=vtype, name=f"x_{i}") for i in range(n)]
@@ -44,6 +43,8 @@ def solve(time_constraint, total_solutions, vtype="I", objective_task="maximize"
                 model.addCons(sum(A[i][j] * vars[j] for j in range(n)) <= b[i])
         else:
             model = deepcopy(orig_model)
+        if time_constraint is not None:
+            model.setParam("limits/time", time_constraint)
         for x in solutions:  
             model.addCons(
                 sum(abs(x[i] - vars[i]) for i in range(n)) >= 1
