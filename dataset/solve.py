@@ -1,11 +1,21 @@
 from pyscipopt import Model
-from copy import deepcopy
 from random import randint
 from result_type import SolutionResultType
 from solution import Solution
 
+def solve_from_matrices(total_solutions,  time_constraint, A, c, b, vtype="I", objective_task="maximize"):
+    model = Model()
+    model.hideOutput(True)
+    n = len(c)
+    m = len(b)
+    vars = [model.addVar(vtype=vtype, name=f"x_{i}") for i in range(n)]
+    model.setParam("limits/time", time_constraint)
+    for i in range(m):
+        model.addCons(sum(A[i][j] * vars[j] for j in range(n)) <= b[i])
+    return solve(total_solutions=total_solutions, objective_task=objective_task, orig_model=model)
 
-def solve(total_solutions, vtype="I", objective_task="maximize", time_constraint=None, orig_model=None, A=None, c=None, b=None):
+
+def solve(total_solutions, orig_model, objective_task="maximize"):
     """
     Compute either total_solutions solutions, or compute solutions
     until solver runtime is >= time_constraint
@@ -30,22 +40,11 @@ def solve(total_solutions, vtype="I", objective_task="maximize", time_constraint
     """
     solutions = []
     cnt = 0
-    if (A is None or b is None or c is None) and orig_model is None:
-        raise Exception("Not enough arguments given")
     for i in range(total_solutions):
-        if orig_model is None:
-            model = Model()
-            model.hideOutput(True)
-            n = len(c)
-            m = len(b)
-            vars = [model.addVar(vtype=vtype, name=f"x_{i}") for i in range(n)]
-            for i in range(m):
-                model.addCons(sum(A[i][j] * vars[j] for j in range(n)) <= b[i])
-        else:
-            model = deepcopy(orig_model)
-        if time_constraint is not None:
-            model.setParam("limits/time", time_constraint)
-        for x in solutions:  
+        model = Model(sourceModel=orig_model)
+        vars = model.getVars()
+        n = len(vars)
+        for x in solutions:
             model.addCons(
                 sum(abs(x[i] - vars[i]) for i in range(n)) >= 1
             )
@@ -70,7 +69,7 @@ if __name__ == "__main__":
          [2, 4, 7]]
     b = [20, 20]
     c = [1, 8, 4]
-    solutions = solve(A, c, b, 10, 1000)
+    solutions = solve_from_matrices(A=A, c=c, b=b, time_constraint=10, total_solutions=1000)
     for solution in solutions:
         if solution.status != "optimal":
             print(solution.status)
