@@ -1,10 +1,11 @@
 from pyscipopt import Model
+from copy import deepcopy
 from random import randint
 from result_type import SolutionResultType
 from solution import Solution
 
 
-def solve(A, c, b, time_constraint, total_solutions, vtype="I", objective_task="maximize"):
+def solve(time_constraint, total_solutions, vtype="I", objective_task="maximize", orig_model=None, A=None, c=None, b=None):
     """
     Compute either total_solutions solutions, or compute solutions
     until solver runtime is >= time_constraint
@@ -24,15 +25,20 @@ def solve(A, c, b, time_constraint, total_solutions, vtype="I", objective_task="
     """
     solutions = []
     cnt = 0
+    if (A is None or b is None or c is None) and orig_model is None:
+        raise Exception("Not enough arguments given")
     for i in range(total_solutions):
-        model = Model()
-        model.hideOutput(True)
-        model.setParam("limits/time", time_constraint)
-        n = len(c)
-        m = len(b)
-        vars = [model.addVar(vtype=vtype, name=f"x_{i}") for i in range(n)]
-        for i in range(m):
-            model.addCons(sum(A[i][j] * vars[j] for j in range(n)) <= b[i])
+        if orig_model is None:
+            model = Model()
+            model.hideOutput(True)
+            model.setParam("limits/time", time_constraint)
+            n = len(c)
+            m = len(b)
+            vars = [model.addVar(vtype=vtype, name=f"x_{i}") for i in range(n)]
+            for i in range(m):
+                model.addCons(sum(A[i][j] * vars[j] for j in range(n)) <= b[i])
+        else:
+            model = deepcopy(orig_model)
         for x in solutions:  
             model.addCons(
                 sum(abs(x[i] - vars[i]) for i in range(n)) >= 1
