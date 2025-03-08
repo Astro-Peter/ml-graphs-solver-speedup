@@ -9,8 +9,13 @@ def solve(time_constraint, total_solutions, vtype="I", objective_task="maximize"
     """
     Compute either total_solutions solutions, or compute solutions
     until solver runtime is >= time_constraint
+    Takes in either a scip model, or parameters for MILP problem
+    If the model is given ignores any parameters for MILP problem
+    If neither are given(or not full parameter list) raises an 
+    exception
     
     Keyword arguments:
+        orig_model -- scip model
         A -- constraint matrix of size (m, n)
         c -- vector of objective matrix coefficients of size n
         b -- right-hand side vector of size m
