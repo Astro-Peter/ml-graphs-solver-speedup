@@ -21,7 +21,7 @@ def main():
     # Prepare CSV file
     csv_exists = os.path.isfile(args.csv_file)
     with open(args.csv_file, 'a', newline='') as csvfile:
-        fieldnames = ['lp_file', 'solution_file', 'random_states_file', 'solve_times_file']
+        fieldnames = ['lp_file', 'solutions_file', 'random_states_file', 'solve_times_file']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         
         if not csv_exists:
@@ -33,14 +33,14 @@ def main():
                 continue
 
             lp_path = os.path.join(args.input_dir, lp_file)
-            filename = os.path.basename(lp_file)
+            filename = lp_file.split('.')[0]
             
             try:
                 model = Model()
                 model.readProblem(lp_path)
                 model.setParam('limits/time', args.time_limit)
                 model.hideOutput()
-                solution_file = f"{args.output_dir}/{filename}_solution.npy"
+                solution_file = f"{args.output_dir}/{filename}_solutions.npy"
                 random_states_file = f"{args.output_dir}/{filename}_random_states.npy"
                 solve_times_file = f"{args.output_dir}/{filename}_solve_times.npy"
 
