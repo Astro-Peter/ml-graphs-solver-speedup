@@ -3,7 +3,7 @@ from random import randint
 from result_type import SolutionResultType
 from solution import Solution
 
-def solve_from_matrices(total_solutions,  time_constraint, A, c, b, vtype="I", objective_task="maximize"):
+def solve_from_matrices(total_solutions,  time_constraint, A, c, b, vtype="I"):
     model = Model()
     model.hideOutput(True)
     n = len(c)
@@ -12,10 +12,10 @@ def solve_from_matrices(total_solutions,  time_constraint, A, c, b, vtype="I", o
     model.setParam("limits/time", time_constraint)
     for i in range(m):
         model.addCons(sum(A[i][j] * vars[j] for j in range(n)) <= b[i])
-    return solve(total_solutions=total_solutions, objective_task=objective_task, orig_model=model)
+    return solve(total_solutions=total_solutions, orig_model=model)
 
 
-def solve(total_solutions, orig_model, objective_task="maximize"):
+def solve(total_solutions, orig_model):
     """
     Compute either total_solutions solutions, or compute solutions
     until solver runtime is >= time_constraint
@@ -48,7 +48,6 @@ def solve(total_solutions, orig_model, objective_task="maximize"):
             model.addCons(
                 sum(abs(x[i] - vars[i]) for i in range(n)) >= 1
             )
-        model.setObjective(sum(c[i] * vars[i] for i in range(n)), objective_task)
         random_state = randint(0, 2147483647)
         model.setParam("randomization/randomseedshift", random_state)
         model.optimize()
@@ -57,9 +56,8 @@ def solve(total_solutions, orig_model, objective_task="maximize"):
             break
         x = [model.getVal(vars[i]) for i in range(n)]
         solutions.append(x)
-        obj_fun_val = sum([x[i] * c[i] for i in range(n)])
         runtime = model.getSolvingTime()
-        yield SolutionResultType(model.getStatus(), Solution(x, cnt, runtime, obj_fun_val, random_state))
+        yield SolutionResultType(model.getStatus(), Solution(x, cnt, runtime, random_state))
         cnt += 1
 
 
