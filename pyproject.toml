@@ -11,3 +11,6 @@ dependencies = [
     'torch_geometric',
     'numpy'
 ]
+
+[tool.setuptools]
+packages = ["parser", "dataset"]
