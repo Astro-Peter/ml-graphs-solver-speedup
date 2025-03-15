@@ -3,13 +3,29 @@ from random import randint
 from result_type import SolutionResultType
 from solution import Solution
 
+def solve_from_matrices(total_solutions,  time_constraint, A, c, b, vtype="I"):
+    model = Model()
+    model.hideOutput(True)
+    n = len(c)
+    m = len(b)
+    vars = [model.addVar(vtype=vtype, name=f"x_{i}") for i in range(n)]
+    model.setParam("limits/time", time_constraint)
+    for i in range(m):
+        model.addCons(sum(A[i][j] * vars[j] for j in range(n)) <= b[i])
+    return solve(total_solutions=total_solutions, orig_model=model)
 
-def solve(A, c, b, time_constraint, total_solutions, vtype="I", objective_task="maximize"):
+
+def solve(total_solutions, orig_model):
     """
     Compute either total_solutions solutions, or compute solutions
     until solver runtime is >= time_constraint
+    Takes in either a scip model, or parameters for MILP problem
+    If the model is given ignores any parameters for MILP problem
+    If neither are given(or not full parameter list) raises an 
+    exception
     
     Keyword arguments:
+        orig_model -- scip model
         A -- constraint matrix of size (m, n)
         c -- vector of objective matrix coefficients of size n
         b -- right-hand side vector of size m
@@ -25,19 +41,13 @@ def solve(A, c, b, time_constraint, total_solutions, vtype="I", objective_task="
     solutions = []
     cnt = 0
     for i in range(total_solutions):
-        model = Model()
-        model.hideOutput(True)
-        model.setParam("limits/time", time_constraint)
-        n = len(c)
-        m = len(b)
-        vars = [model.addVar(vtype=vtype, name=f"x_{i}") for i in range(n)]
-        for i in range(m):
-            model.addCons(sum(A[i][j] * vars[j] for j in range(n)) <= b[i])
-        for x in solutions:  
+        model = Model(sourceModel=orig_model)
+        vars = model.getVars()
+        n = len(vars)
+        for x in solutions:
             model.addCons(
                 sum(abs(x[i] - vars[i]) for i in range(n)) >= 1
             )
-        model.setObjective(sum(c[i] * vars[i] for i in range(n)), objective_task)
         random_state = randint(0, 2147483647)
         model.setParam("randomization/randomseedshift", random_state)
         model.optimize()
@@ -46,9 +56,8 @@ def solve(A, c, b, time_constraint, total_solutions, vtype="I", objective_task="
             break
         x = [model.getVal(vars[i]) for i in range(n)]
         solutions.append(x)
-        obj_fun_val = sum([x[i] * c[i] for i in range(n)])
         runtime = model.getSolvingTime()
-        yield SolutionResultType(model.getStatus(), Solution(x, cnt, runtime, obj_fun_val, random_state))
+        yield SolutionResultType(model.getStatus(), Solution(x, cnt, runtime, random_state))
         cnt += 1
 
 
@@ -58,7 +67,7 @@ if __name__ == "__main__":
          [2, 4, 7]]
     b = [20, 20]
     c = [1, 8, 4]
-    solutions = solve(A, c, b, 10, 1000)
+    solutions = solve_from_matrices(A=A, c=c, b=b, time_constraint=10, total_solutions=1000)
     for solution in solutions:
         if solution.status != "optimal":
             print(solution.status)
